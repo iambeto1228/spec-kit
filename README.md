@@ -212,6 +212,14 @@ specify init my-project --ai claude --debug
 # Use GitHub token for API requests (helpful for corporate environments)
 specify init my-project --ai claude --github-token ghp_your_token_here
 
+# Override the repository used to fetch release assets (forks or mirrors)
+specify init my-project --ai trae --repo iambeto1228/spec-kit
+# or specify owner/name separately
+specify init my-project --ai trae --repo-owner iambeto1228 --repo-name spec-kit
+# Environment override also works:
+# export SPEC_KIT_REPO_OWNER=iambeto1228 SPEC_KIT_REPO_NAME=spec-kit
+# specify init my-project --ai trae
+
 # Check system requirements
 specify check
 ```

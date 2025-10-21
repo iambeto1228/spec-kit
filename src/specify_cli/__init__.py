@@ -64,6 +64,23 @@ def _github_auth_headers(cli_token: str | None = None) -> dict:
     token = _github_token(cli_token)
     return {"Authorization": f"Bearer {token}"} if token else {}
 
+# Support overriding the GitHub repository for template downloads
+def _resolve_repo(owner_opt: str | None = None, name_opt: str | None = None, repo_opt: str | None = None) -> tuple[str, str]:
+    """
+    Resolve repository owner/name using, in order:
+    1) Combined --repo 'owner/name';
+    2) Individual --repo-owner / --repo-name;
+    3) Environment SPEC_KIT_REPO_OWNER / SPEC_KIT_REPO_NAME;
+    4) Defaults 'github/spec-kit'.
+    """
+    if repo_opt:
+        parts = [p for p in repo_opt.strip().split("/") if p]
+        if len(parts) == 2:
+            return parts[0], parts[1]
+    owner = (owner_opt or os.getenv("SPEC_KIT_REPO_OWNER") or "github").strip()
+    name = (name_opt or os.getenv("SPEC_KIT_REPO_NAME") or "spec-kit").strip()
+    return owner, name
+
 # Agent configuration with name, folder, install URL, and CLI tool requirement
 AGENT_CONFIG = {
     "copilot": {
@@ -491,9 +508,8 @@ def init_git_repo(project_path: Path, quiet: bool = False) -> Tuple[bool, Option
     finally:
         os.chdir(original_cwd)
 
-def download_template_from_github(ai_assistant: str, download_dir: Path, *, script_type: str = "sh", verbose: bool = True, show_progress: bool = True, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Tuple[Path, dict]:
-    repo_owner = "github"
-    repo_name = "spec-kit"
+def download_template_from_github(ai_assistant: str, download_dir: Path, *, script_type: str = "sh", verbose: bool = True, show_progress: bool = True, client: httpx.Client = None, debug: bool = False, github_token: str = None, repo_owner: str | None = None, repo_name: str | None = None) -> Tuple[Path, dict]:
+    repo_owner, repo_name = _resolve_repo(repo_owner, repo_name)
     if client is None:
         client = httpx.Client(verify=ssl_context)
 
@@ -601,7 +617,7 @@ def download_template_from_github(ai_assistant: str, download_dir: Path, *, scri
     }
     return zip_path, metadata
 
-def download_and_extract_template(project_path: Path, ai_assistant: str, script_type: str, is_current_dir: bool = False, *, verbose: bool = True, tracker: StepTracker | None = None, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Path:
+def download_and_extract_template(project_path: Path, ai_assistant: str, script_type: str, is_current_dir: bool = False, *, verbose: bool = True, tracker: StepTracker | None = None, client: httpx.Client = None, debug: bool = False, github_token: str = None, repo_owner: str | None = None, repo_name: str | None = None) -> Path:
     """Download the latest release and extract it to create a new project.
     Returns project_path. Uses tracker if provided (with keys: fetch, download, extract, cleanup)
     """
@@ -618,7 +634,9 @@ def download_and_extract_template(project_path: Path, ai_assistant: str, script_
             show_progress=(tracker is None),
             client=client,
             debug=debug,
-            github_token=github_token
+            github_token=github_token,
+            repo_owner=repo_owner,
+            repo_name=repo_name,
         )
         if tracker:
             tracker.complete("fetch", f"release {meta['release']} ({meta['size']:,} bytes)")
@@ -803,30 +821,12 @@ def init(
     skip_tls: bool = typer.Option(False, "--skip-tls", help="Skip SSL/TLS verification (not recommended)"),
     debug: bool = typer.Option(False, "--debug", help="Show verbose diagnostic output for network and extraction failures"),
     github_token: str = typer.Option(None, "--github-token", help="GitHub token to use for API requests (or set GH_TOKEN or GITHUB_TOKEN environment variable)"),
+    repo_owner: str = typer.Option(None, "--repo-owner", help="Override GitHub repo owner (default 'github')"),
+    repo_name: str = typer.Option(None, "--repo-name", help="Override GitHub repo name (default 'spec-kit')"),
+    repo: str = typer.Option(None, "--repo", help="Override repository as 'owner/name'"),
 ):
     """
     Initialize a new Specify project from the latest template.
-    
-    This command will:
-    1. Check that required tools are installed (git is optional)
-    2. Let you choose your AI assistant
-    3. Download the appropriate template from GitHub
-    4. Extract the template to a new project directory or current directory
-    5. Initialize a fresh git repository (if not --no-git and no existing repo)
-    6. Optionally set up AI assistant commands
-    
-    Examples:
-        specify init my-project
-        specify init my-project --ai claude
-        specify init my-project --ai copilot --no-git
-        specify init --ignore-agent-tools my-project
-        specify init . --ai claude         # Initialize in current directory
-        specify init .                     # Initialize in current directory (interactive AI selection)
-        specify init --here --ai claude    # Alternative syntax for current directory
-        specify init --here --ai codex
-        specify init --here --ai codebuddy
-        specify init --here
-        specify init --here --force  # Skip confirmation when current directory not empty
     """
 
     show_banner()
@@ -939,6 +939,8 @@ def init(
 
     console.print(f"[cyan]Selected AI assistant:[/cyan] {selected_ai}")
     console.print(f"[cyan]Selected script type:[/cyan] {selected_script}")
+    final_owner, final_name = _resolve_repo(repo_owner, repo_name, repo)
+    console.print(f"[cyan]Selected repo:[/cyan] {final_owner}/{final_name}")
 
     tracker = StepTracker("Initialize Specify Project")
 
@@ -973,7 +975,7 @@ def init(
             local_ssl_context = ssl_context if verify else False
             local_client = httpx.Client(verify=local_ssl_context)
 
-            download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
+            download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token, repo_owner=final_owner, repo_name=final_name)
 
             ensure_executable_scripts(project_path, tracker=tracker)
 
