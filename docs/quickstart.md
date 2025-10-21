@@ -11,13 +11,13 @@ This guide will help you get started with Spec-Driven Development using Spec Kit
 Initialize your project depending on the coding agent you're using:
 
 ```bash
-uvx --from git+https://github.com/github/spec-kit.git specify init <PROJECT_NAME>
+uvx --from git+https://github.com/iambeto1228/spec-kit.git specify init <PROJECT_NAME>
 ```
 
 Pick script type explicitly (optional):
 ```bash
-uvx --from git+https://github.com/github/spec-kit.git specify init <PROJECT_NAME> --script ps  # Force PowerShell
-uvx --from git+https://github.com/github/spec-kit.git specify init <PROJECT_NAME> --script sh  # Force POSIX shell
+uvx --from git+https://github.com/iambeto1228/spec-kit.git specify init <PROJECT_NAME> --script ps  # Force PowerShell
+uvx --from git+https://github.com/iambeto1228/spec-kit.git specify init <PROJECT_NAME> --script sh  # Force POSIX shell
 ```
 
 ### 2. Create the Spec
@@ -58,7 +58,7 @@ you should be able to change the current status of the task between the differen
 You should be able to leave an unlimited number of comments for a particular card. You should be able to, from that task
 card, assign one of the valid users. When you first launch Taskify, it's going to give you a list of the five users to pick
 from. There will be no password required. When you click on a user, you go into the main view, which displays the list of
-projects. When you click on a project, you open the Kanban board for that project. You're going to see the columns.
+the projects. When you click on a project, you open the Kanban board for that project. You're going to see the columns.
 You'll be able to drag and drop cards back and forth between different columns. You will see any cards that are
 assigned to you, the currently logged in user, in a different color from all the other ones, so you can quickly
 see yours. You can edit any comments that you make, but you can't edit comments that other people made. You can
@@ -120,4 +120,6 @@ implement specs/002-create-taskify/plan.md
 - Read the complete methodology for in-depth guidance
 - Check out more examples in the repository
 - Explore the source code on GitHub
+
+```
 
