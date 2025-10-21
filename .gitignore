@@ -1,2 +1,5 @@
 # Ignore local release artifacts
 release-assets/
+
+# Ignore local demo directory
+demo/
